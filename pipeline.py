@@ -1,6 +1,7 @@
+import os
+
 import shared
 from shared import logging
-
 import oneflow as torch
 from diffusers import (
     OneFlowStableDiffusionPipeline as DiffusionPipeline,
