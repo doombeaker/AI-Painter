@@ -17,20 +17,18 @@ logging.basicConfig(
 
 device_placement = shared.cmd_opts.device
 repo_id = shared.cmd_opts.ckpt
-prompt = "detailed full body concept art illustration realistic portrait oil painting of an anthropomorphic dog pilot in full intricate clothing, biomutant, ultra detailed, digital art, octane render, 4K"
-prompt = "a cat with glasses"
-
+model_id = "stabilityai/stable-diffusion-2"
 
 class DiffusionPipelineHandler:
     if not shared.cmd_opts.ui_debug_mode:
         logging.info("DiffusionPipeline initialization")
         if not os.path.exists(repo_id):
-            repo_id = "stabilityai/stable-diffusion-2"
+            repo_id = model_id
         pipe = DiffusionPipeline.from_pretrained(
             repo_id, torch_dtype=torch.float16, revision="fp16"
         )
 
-        pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(repo_id, subfolder="scheduler")
         pipe = pipe.to(device_placement)
         logging.info("DiffusionPipeline initialization completed")
 
