@@ -1,6 +1,4 @@
 import gradio as gr
-import gradio.routes
-import shared
 import os
 from pipeline import DiffusionPipelineHandler, device_placement
 
@@ -9,44 +7,6 @@ from pipeline import DiffusionPipelineHandler, device_placement
 random_symbol = "\U0001f3b2\ufe0f"  # 🎲️
 reuse_symbol = "\u267b\ufe0f"  # ♻️
 folder_symbol = "\U0001f4c2"  # 📂
-
-def get_css_style():
-    css = ""
-    with open("./style.css", "r", encoding="utf8") as file:
-        css += file.read() + "\n"
-    return css
-
-def list_scripts(scriptdirname, extension):
-    scripts_list = []
-
-    basedir = os.path.join(".", scriptdirname)
-    if os.path.exists(basedir):
-        for filename in sorted(os.listdir(basedir)):
-            scripts_list.append(os.path.join(basedir, filename))
-
-    scripts_list = [x for x in scripts_list if os.path.splitext(x)[1].lower() == extension and os.path.isfile(x)]
-
-    return scripts_list
-
-def reload_javascript():
-    scripts_list = list_scripts("javascript", ".js")
-    javascript = ""
-
-    for script in scripts_list:
-        with open(script, "r", encoding="utf8") as jsfile:
-            javascript += f"\n<!-- {script} --><script>{jsfile.read()}</script>"
-
-    def template_response(*args, **kwargs):
-        res = shared.GradioTemplateResponseOriginal(*args, **kwargs)
-        res.body = res.body.replace(
-            b'</head>', f'{javascript}</head>'.encode("utf8"))
-        res.init_headers()
-        return res
-
-    gradio.routes.templates.TemplateResponse = template_response
-
-if not hasattr(shared, 'GradioTemplateResponseOriginal'):
-    shared.GradioTemplateResponseOriginal = gradio.routes.templates.TemplateResponse
 
 def create_output_panel(tabname):
     with gr.Column(variant="panel"):
@@ -150,9 +110,7 @@ def setup_progressbar(progressbar, preview, id_part, textinfo=None):
 
 
 def create_ui():
-    reload_javascript()
-
-    with gr.Blocks(css=get_css_style(), analytics_enabled=False) as txt2img_interface:
+    with gr.Blocks(analytics_enabled=False) as txt2img_interface:
         (
             prompt,
             negative_prompt,
@@ -185,9 +143,6 @@ def create_ui():
                     )
 
                 with gr.Row():
-                    batch_count = gr.Slider(
-                        minimum=1, step=1, label="Batch count", value=1
-                    )
                     batch_size = gr.Slider(
                         minimum=1, maximum=8, step=1, label="Images per Prompt", value=1
                     )
