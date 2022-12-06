@@ -6,3 +6,5 @@ webapp/
 *.log
 ofwebapp/
 repositories/
+log/
+
