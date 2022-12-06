@@ -8,6 +8,7 @@ random_symbol = "\U0001f3b2\ufe0f"  # 🎲️
 reuse_symbol = "\u267b\ufe0f"  # ♻️
 folder_symbol = "\U0001f4c2"  # 📂
 
+
 def create_output_panel(tabname):
     with gr.Column(variant="panel"):
         with gr.Group():
@@ -32,7 +33,6 @@ def create_output_panel(tabname):
                 generation_info,
                 html_info,
             )
-
 
 
 def create_toprow(is_img2img):
@@ -168,9 +168,13 @@ def create_ui():
                         with gr.Row(elem_id="seed_row"):
                             seed = gr.Number(label="Seed", value=-1, precision=0)
                             seed.style(container=False)
-                            random_seed = gr.Button(random_symbol, elem_id="random_seed")
+                            random_seed = gr.Button(
+                                random_symbol, elem_id="random_seed"
+                            )
 
-                random_seed.click(fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed])
+                random_seed.click(
+                    fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed]
+                )
 
             txt2img_gallery, generation_info, html_info = create_output_panel("txt2img")
 
@@ -185,17 +189,19 @@ def create_ui():
             eta=0.0,
             seed: int = -1,
         ):
-            handler = DiffusionPipelineHandler(prompt,
-            width,
-            height,
-            num_inference_steps,
-            guidance_scale,
-            negative_prompt,
-            num_images_per_prompt,
-            eta,
-            seed,
-            "pil",
-            device_placement)
+            handler = DiffusionPipelineHandler(
+                prompt,
+                width,
+                height,
+                num_inference_steps,
+                guidance_scale,
+                negative_prompt,
+                num_images_per_prompt,
+                eta,
+                seed,
+                "pil",
+                device_placement,
+            )
             imgs = handler()
             return imgs, "", prompt
 
