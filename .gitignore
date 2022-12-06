@@ -1,0 +1,8 @@
+*.png
+__pycache__/
+ckpt/
+webapp/
+*.ipynb
+*.log
+ofwebapp/
+
