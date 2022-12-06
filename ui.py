@@ -1,4 +1,7 @@
 import gradio as gr
+import gradio.routes
+import shared
+import os
 from pipeline import DiffusionPipelineHandler, device_placement
 
 # Using constants for these since the variation selector isn't visible.
@@ -7,6 +10,43 @@ random_symbol = "\U0001f3b2\ufe0f"  # 🎲️
 reuse_symbol = "\u267b\ufe0f"  # ♻️
 folder_symbol = "\U0001f4c2"  # 📂
 
+def get_css_style():
+    css = ""
+    with open("./style.css", "r", encoding="utf8") as file:
+        css += file.read() + "\n"
+    return css
+
+def list_scripts(scriptdirname, extension):
+    scripts_list = []
+
+    basedir = os.path.join(".", scriptdirname)
+    if os.path.exists(basedir):
+        for filename in sorted(os.listdir(basedir)):
+            scripts_list.append(os.path.join(basedir, filename))
+
+    scripts_list = [x for x in scripts_list if os.path.splitext(x)[1].lower() == extension and os.path.isfile(x)]
+
+    return scripts_list
+
+def reload_javascript():
+    scripts_list = list_scripts("javascript", ".js")
+    javascript = ""
+
+    for script in scripts_list:
+        with open(script, "r", encoding="utf8") as jsfile:
+            javascript += f"\n<!-- {script} --><script>{jsfile.read()}</script>"
+
+    def template_response(*args, **kwargs):
+        res = shared.GradioTemplateResponseOriginal(*args, **kwargs)
+        res.body = res.body.replace(
+            b'</head>', f'{javascript}</head>'.encode("utf8"))
+        res.init_headers()
+        return res
+
+    gradio.routes.templates.TemplateResponse = template_response
+
+if not hasattr(shared, 'GradioTemplateResponseOriginal'):
+    shared.GradioTemplateResponseOriginal = gradio.routes.templates.TemplateResponse
 
 def create_output_panel(tabname):
     with gr.Column(variant="panel"):
@@ -33,19 +73,6 @@ def create_output_panel(tabname):
                 html_info,
             )
 
-
-def create_seed_inputs():
-    with gr.Row():
-        with gr.Box():
-            with gr.Row(elem_id="seed_row"):
-                seed = gr.Number(label="Seed", value=-1, precision=0)
-                seed.style(container=False)
-                random_seed = gr.Button(random_symbol, elem_id="random_seed")
-                reuse_seed = gr.Button(reuse_symbol, elem_id="reuse_seed")
-
-    random_seed.click(fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed])
-
-    return seed, reuse_seed
 
 
 def create_toprow(is_img2img):
@@ -123,7 +150,9 @@ def setup_progressbar(progressbar, preview, id_part, textinfo=None):
 
 
 def create_ui():
-    with gr.Blocks(analytics_enabled=False) as txt2img_interface:
+    reload_javascript()
+
+    with gr.Blocks(css=get_css_style(), analytics_enabled=False) as txt2img_interface:
         (
             prompt,
             negative_prompt,
@@ -179,7 +208,14 @@ def create_ui():
                     value=0.0,
                 )
 
-                seed, reuse_seed = create_seed_inputs()
+                with gr.Row():
+                    with gr.Box():
+                        with gr.Row(elem_id="seed_row"):
+                            seed = gr.Number(label="Seed", value=-1, precision=0)
+                            seed.style(container=False)
+                            random_seed = gr.Button(random_symbol, elem_id="random_seed")
+
+                random_seed.click(fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed])
 
             txt2img_gallery, generation_info, html_info = create_output_panel("txt2img")
 
