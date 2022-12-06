@@ -61,6 +61,9 @@ def is_installed(package):
     return spec is not None
 
 def prepare_enviroment():
+    requirements_command = f"{python} -m pip install -r requirements.txt"
+    run(requirements_command, "Installing requirments.txt", "Couldn't installing requirments.txt")
+
     of_diffusers_repo = "https://github.com/Oneflow-Inc/diffusers.git"
     git_clone(of_diffusers_repo, repo_dir('diffusers'), "OneFlow Diffusers", "495155448aaf7391a4edb3ffcefced015b4080f2")
     diffusers_command = f"cd {repo_dir('diffusers')} && python -m pip install -e .[oneflow]"
