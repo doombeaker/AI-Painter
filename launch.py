@@ -107,7 +107,7 @@ def prepare_enviroment():
         "495155448aaf7391a4edb3ffcefced015b4080f2",
     )
     diffusers_command = (
-        f"cd {repo_dir('diffusers')} && python -m pip install -e .[oneflow]"
+        f"cd {repo_dir('diffusers')} && {python} -m pip install -e .[oneflow]"
     )
     if not is_installed("diffusers"):
         run(
@@ -124,7 +124,7 @@ def prepare_enviroment():
         "f7a52b04a0035aaf4b48c999a170ef630d3af9b6",
     )
     transformers_command = (
-        f"cd {repo_dir('transformers')} && python -m pip install -e ."
+        f"cd {repo_dir('transformers')} && {python} -m pip install -e ."
     )
     if not is_installed("transformers"):
         run(
