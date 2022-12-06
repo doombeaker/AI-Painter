@@ -206,7 +206,7 @@ def create_ui():
             "pil",
             device_placement)
             imgs = handler()
-            return imgs*2, "hello", "world"
+            return imgs, "", prompt
 
         submit.click(
             fn=run_diffusers_pipeline,

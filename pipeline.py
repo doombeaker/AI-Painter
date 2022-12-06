@@ -1,8 +1,9 @@
 import logging
 
-import torch
-from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
- 
+import oneflow as torch
+from diffusers import (
+    OneFlowStableDiffusionPipeline as DiffusionPipeline, 
+    OneFlowDPMSolverMultistepScheduler as DPMSolverMultistepScheduler)
  
 logging.basicConfig(
     level=logging.INFO,
@@ -66,3 +67,4 @@ if __name__ == "__main__":
     phandler = DiffusionPipelineHandler("a dog with glasses")
     imgs = phandler()
     print(type(imgs), type(imgs[0]))
+    imgs[0].save("demo.png")
