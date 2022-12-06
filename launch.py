@@ -3,8 +3,6 @@ import importlib.util
 import os
 import sys
 
-from ui import create_ui
-
 dir_repos = "repositories"
 dir_extensions = "extensions"
 python = sys.executable
@@ -78,4 +76,5 @@ def prepare_enviroment():
 
 if __name__ == "__main__":
     prepare_enviroment()
+    from ui import create_ui
     create_ui()
