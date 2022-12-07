@@ -1,3 +1,8 @@
+# AI Painter by OneFlow
+
+![](./screenshot.png)
+
+A browser interface for [OneFlow Diffusers](https://github.com/Oneflow-Inc/diffusers) inspired by [Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui).
 
 ## How to Run
 
