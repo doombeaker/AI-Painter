@@ -1,5 +1,7 @@
 import gradio as gr
+import os
 from pipeline import DiffusionPipelineHandler, device_placement
+from shared import cmd_opts
 
 # Using constants for these since the variation selector isn't visible.
 # Important that they exactly match script.js for tooltip to work.
@@ -32,20 +34,6 @@ def create_output_panel(tabname):
                 generation_info,
                 html_info,
             )
-
-
-def create_seed_inputs():
-    with gr.Row():
-        with gr.Box():
-            with gr.Row(elem_id="seed_row"):
-                seed = gr.Number(label="Seed", value=-1, precision=0)
-                seed.style(container=False)
-                random_seed = gr.Button(random_symbol, elem_id="random_seed")
-                reuse_seed = gr.Button(reuse_symbol, elem_id="reuse_seed")
-
-    random_seed.click(fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed])
-
-    return seed, reuse_seed
 
 
 def create_toprow(is_img2img):
@@ -156,9 +144,6 @@ def create_ui():
                     )
 
                 with gr.Row():
-                    batch_count = gr.Slider(
-                        minimum=1, step=1, label="Batch count", value=1
-                    )
                     batch_size = gr.Slider(
                         minimum=1, maximum=8, step=1, label="Images per Prompt", value=1
                     )
@@ -179,7 +164,18 @@ def create_ui():
                     value=0.0,
                 )
 
-                seed, reuse_seed = create_seed_inputs()
+                with gr.Row():
+                    with gr.Box():
+                        with gr.Row(elem_id="seed_row"):
+                            seed = gr.Number(label="Seed", value=-1, precision=0)
+                            seed.style(container=False)
+                            random_seed = gr.Button(
+                                random_symbol, elem_id="random_seed"
+                            )
+
+                random_seed.click(
+                    fn=lambda: -1, show_progress=False, inputs=[], outputs=[seed]
+                )
 
             txt2img_gallery, generation_info, html_info = create_output_panel("txt2img")
 
@@ -194,19 +190,21 @@ def create_ui():
             eta=0.0,
             seed: int = -1,
         ):
-            handler = DiffusionPipelineHandler(prompt,
-            width,
-            height,
-            num_inference_steps,
-            guidance_scale,
-            negative_prompt,
-            num_images_per_prompt,
-            eta,
-            seed,
-            "pil",
-            device_placement)
+            handler = DiffusionPipelineHandler(
+                prompt,
+                width,
+                height,
+                num_inference_steps,
+                guidance_scale,
+                negative_prompt,
+                num_images_per_prompt,
+                eta,
+                seed,
+                "pil",
+                device_placement,
+            )
             imgs = handler()
-            return imgs*2, "hello", "world"
+            return imgs, "", prompt
 
         submit.click(
             fn=run_diffusers_pipeline,
@@ -227,7 +225,9 @@ def create_ui():
                 html_info,
             ],
         )
-    txt2img_interface.launch()
+    txt2img_interface.launch(
+        share=cmd_opts.share, server_name=cmd_opts.ip, server_port=cmd_opts.port
+    )
 
 
 if __name__ == "__main__":
