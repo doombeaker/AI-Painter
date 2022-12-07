@@ -226,7 +226,7 @@ def create_ui():
             ],
         )
     txt2img_interface.launch(
-        share=cmd_opts.share, server_name=cmd_opts.ip, port=cmd_opts.port
+        share=cmd_opts.share, server_name=cmd_opts.ip, server_port=cmd_opts.port
     )
 
 
