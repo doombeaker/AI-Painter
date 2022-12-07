@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 from pipeline import DiffusionPipelineHandler, device_placement
+from shared import cmd_opts
 
 # Using constants for these since the variation selector isn't visible.
 # Important that they exactly match script.js for tooltip to work.
@@ -224,7 +225,9 @@ def create_ui():
                 html_info,
             ],
         )
-    txt2img_interface.launch()
+    txt2img_interface.launch(
+        share=cmd_opts.share, server_name=cmd_opts.ip, port=cmd_opts.port
+    )
 
 
 if __name__ == "__main__":

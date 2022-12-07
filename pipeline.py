@@ -19,6 +19,7 @@ device_placement = shared.cmd_opts.device
 repo_id = shared.cmd_opts.ckpt
 model_id = "stabilityai/stable-diffusion-2"
 
+
 class DiffusionPipelineHandler:
     if not shared.cmd_opts.ui_debug_mode:
         logging.info("DiffusionPipeline initialization")
@@ -28,7 +29,9 @@ class DiffusionPipelineHandler:
             repo_id, torch_dtype=torch.float16, revision="fp16"
         )
 
-        pipe.scheduler = DPMSolverMultistepScheduler.from_config(repo_id, subfolder="scheduler")
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+            repo_id, subfolder="scheduler"
+        )
         pipe = pipe.to(device_placement)
         logging.info("DiffusionPipeline initialization completed")
 
