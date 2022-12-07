@@ -1,4 +1,7 @@
 set -ex
+python3 -m pip install -r requirements.txt \
+    && python3 -m pip install -f https://staging.oneflow.info/branch/master/cu112 --pre oneflow
+
 BASE_REPO_DIR="./repositories"
 mkdir -p $BASE_REPO_DIR
 
