@@ -21,6 +21,9 @@ parser.add_argument(
 parser.add_argument(
     "--ui-debug-mode", action="store_true", help="Don't load model to quickly launch UI"
 )
+parser.add_argument(
+    "--graph-mode", action="store_true", help="Use OneFlow Graph mode, default to False"
+)
 parser.add_argument("--share", action="store_true", help="Share by gradio.app")
 cmd_opts = parser.parse_args()
 

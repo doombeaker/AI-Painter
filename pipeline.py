@@ -77,6 +77,7 @@ class DiffusionPipelineHandler:
             eta=self.eta,
             generator=generator,
             output_type=self.output_type,
+            compile_unet=shared.cmd_opts.graph_mode,
         )
         return result.images
 
