@@ -3,7 +3,10 @@ import os
 import shared
 from shared import logging
 import oneflow as torch
+from PIL import Image
+
 from diffusers import (
+    OneFlowStableDiffusionImg2ImgPipeline as DiffusionImg2ImgPipeline,
     OneFlowStableDiffusionPipeline as DiffusionPipeline,
     OneFlowDPMSolverMultistepScheduler as DPMSolverMultistepScheduler,
 )
@@ -18,6 +21,75 @@ logging.basicConfig(
 device_placement = shared.cmd_opts.device
 repo_id = shared.cmd_opts.ckpt
 model_id = "stabilityai/stable-diffusion-2"
+
+
+class DiffusionImg2ImgPipelineHandler:
+    if not shared.cmd_opts.ui_debug_mode:
+        logging.info("DiffusionImg2ImgPipeline initialization")
+
+        pipe = DiffusionImg2ImgPipeline.from_pretrained(
+            model_id,
+            revision="fp16", 
+            torch_dtype=torch.float16,
+        )
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+            model_id, subfolder="scheduler"
+        )
+       # pipe = pipe.to(device_placement)
+        pipe = pipe.to("cuda:1")
+        logging.info("DiffusionImg2ImgPipeline initialization completed")
+
+    def __init__(
+        self,
+        prompt: str,
+        init_image:Image.Image,
+        strength:float=0.8,
+        width: int = 512,
+        height: int = 512,
+        num_inference_steps: int = 50,
+        guidance_scale: float = 7.5,
+        negative_prompt: str = None,
+        num_images_per_prompt: int = 1,
+        eta=0.0,
+        seed: int = -1,
+        output_type="pil",
+        device_placement="cuda",
+    ):
+        self.prompt = prompt
+        self.image=init_image.resize((width, height))
+        self.strength=strength
+        self.num_inference_steps = num_inference_steps
+        self.guidance_scale = guidance_scale
+        self.negative_prompt = negative_prompt
+        self.num_images_per_prompt = num_images_per_prompt
+        self.eta = eta
+        self.seed = seed
+        self.output_type = output_type
+        self.device_placement = device_placement
+
+    def __call__(self):
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=device_placement)
+            generator.manual_seed(self.seed)
+        with torch.autocast("cuda"):
+            result = DiffusionImg2ImgPipelineHandler.pipe(
+            prompt=self.prompt,
+            image=self.image,
+            strength=self.strength,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            negative_prompt=self.negative_prompt,
+            num_images_per_prompt=self.num_images_per_prompt,
+            eta=self.eta,
+            generator=generator,
+            output_type=self.output_type,
+            compile_unet=shared.cmd_opts.graph_mode,
+        )
+        return result.images
+
+
+
 
 
 class DiffusionPipelineHandler:
@@ -78,13 +150,14 @@ class DiffusionPipelineHandler:
             generator=generator,
             output_type=self.output_type,
             compile_unet=shared.cmd_opts.graph_mode,
-        )
+            )
         return result.images
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     if not shared.cmd_opts.ui_debug_mode:
-        phandler = DiffusionPipelineHandler("a dog with glasses")
+        init_image = Image.open("test.jpg").convert("RGB")
+        phandler = DiffusionImg2ImgPipelineHandler("a dog with glasses",init_image=init_image)
         imgs = phandler()
         print(type(imgs), type(imgs[0]))
         imgs[0].save("demo.png")
