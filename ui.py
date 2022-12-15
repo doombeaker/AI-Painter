@@ -1,7 +1,13 @@
 import gradio as gr
 import os
-from pipeline import DiffusionPipelineHandler, device_placement
+from pipeline import (
+    DiffusionImg2ImgPipelineHandler,
+    DiffusionPipelineHandler,
+    device_placement,
+)
 from shared import cmd_opts
+import shared
+from PIL import Image
 
 # Using constants for these since the variation selector isn't visible.
 # Important that they exactly match script.js for tooltip to work.
@@ -29,11 +35,8 @@ def create_output_panel(tabname):
                 else:
                     html_info_x = gr.HTML()
                     html_info = gr.HTML()
-            return (
-                result_gallery,
-                generation_info,
-                html_info,
-            )
+
+            return (result_gallery, generation_info, html_info)
 
 
 def create_toprow(is_img2img):
@@ -110,7 +113,12 @@ def setup_progressbar(progressbar, preview, id_part, textinfo=None):
     )
 
 
+def mirror(x):
+    return x
+
+
 def create_ui():
+
     with gr.Blocks(analytics_enabled=False) as txt2img_interface:
         (
             prompt,
@@ -204,6 +212,7 @@ def create_ui():
                 device_placement,
             )
             imgs = handler()
+            shared.txt2img_result = imgs
             return imgs, "", prompt
 
         submit.click(
@@ -225,7 +234,172 @@ def create_ui():
                 html_info,
             ],
         )
-    txt2img_interface.launch(
+    with gr.Blocks(analytics_enabled=False) as img2img_interface:
+        (
+            img2img_prompt,
+            img2img_negative_prompt,
+            submit,
+            button_interrogate,
+            button_deepbooru,
+        ) = create_toprow(is_img2img=True)
+
+        with gr.Row(elem_id="img2img_progress_row"):
+            with gr.Column(scale=1):
+                pass
+
+            with gr.Column(scale=1):
+                progressbar = gr.HTML(elem_id="img2img_progressbar")
+                img2img_preview = gr.Image(elem_id="img2img_preview", visible=False)
+                setup_progressbar(progressbar, img2img_preview, "img2img")
+
+        with gr.Row().style(equal_height=False):
+            with gr.Column(variant="panel"):
+
+                with gr.Tabs(elem_id="mode_img2img") as tabs_img2img_mode:
+                    with gr.TabItem("img2img", id="img2img"):
+                        init_img = gr.Image(
+                            label="Image for img2img",
+                            elem_id="img2img_image",
+                            show_label=False,
+                            source="upload",
+                            interactive=True,
+                            type="pil",
+                        ).style(height=480)
+
+                steps = gr.Slider(
+                    minimum=1, maximum=150, step=1, label="Sampling Steps", value=20
+                )
+                guidance_scale = gr.Slider(
+                    minimum=1.0,
+                    maximum=30.0,
+                    step=0.5,
+                    label="Guidance Scale",
+                    value=7.5,
+                )
+
+                eta = gr.Slider(
+                    minimum=0.0,
+                    maximum=5.0,
+                    step=0.1,
+                    label="eta",
+                    value=0.0,
+                )
+
+                with gr.Group():
+                    width = gr.Slider(
+                        minimum=64,
+                        maximum=2048,
+                        step=64,
+                        label="Width",
+                        value=768,
+                        elem_id="img2img_width",
+                    )
+                    height = gr.Slider(
+                        minimum=64,
+                        maximum=2048,
+                        step=64,
+                        label="Height",
+                        value=768,
+                        elem_id="img2img_height",
+                    )
+
+                with gr.Group():
+                    denoising_strength = gr.Slider(
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.01,
+                        label="Denoising strength",
+                        value=0.75,
+                    )
+
+                with gr.Row():
+                    batch_size = gr.Slider(
+                        minimum=1, maximum=8, step=1, label="Images per Prompt", value=1
+                    )
+                with gr.Row():
+                    with gr.Box():
+                        with gr.Row(elem_id="seed_row"):
+                            seed = gr.Number(label="Seed", value=-1, precision=0)
+                            seed.style(container=False)
+                            random_seed = gr.Button(
+                                random_symbol, elem_id="random_seed"
+                            )
+
+            (
+                img2img_gallery,
+                img2img_generation_info,
+                img2img_html_info,
+            ) = create_output_panel("img2img")
+
+        def run_diffusers_img2img_pipeline(
+            prompt: str,
+            image: Image.Image,
+            strength: float = 0.8,
+            width: int = 768,
+            height: int = 768,
+            num_inference_steps: int = 25,
+            guidance_scale: float = 7.5,
+            negative_prompt: str = None,
+            num_images_per_prompt: int = 1,
+            eta=0.0,
+            seed: int = -1,
+        ):
+            if image is None:
+                imgs = None
+                prompt = "Please drop image"
+            else:
+                handler = DiffusionImg2ImgPipelineHandler(
+                    prompt,
+                    image,
+                    strength,
+                    width,
+                    height,
+                    num_inference_steps,
+                    guidance_scale,
+                    negative_prompt,
+                    num_images_per_prompt,
+                    eta,
+                    seed,
+                    "pil",
+                    device_placement,
+                )
+                imgs = handler()
+            return imgs, "", prompt
+
+        submit.click(
+            fn=run_diffusers_img2img_pipeline,
+            inputs=[
+                img2img_prompt,
+                init_img,
+                denoising_strength,
+                width,
+                height,
+                steps,
+                guidance_scale,
+                img2img_negative_prompt,
+                batch_size,
+                eta,
+                seed,
+            ],
+            outputs=[
+                img2img_gallery,
+                img2img_generation_info,
+                img2img_html_info,
+            ],
+        )
+
+    interfaces = [
+        (txt2img_interface, "txt2img", "txt2img"),
+        (img2img_interface, "img2img", "img2img"),
+    ]
+    with gr.Blocks(analytics_enabled=False) as launch_interface:
+
+        with gr.Tabs(elem_id="tabs") as tabs:
+            for interface, label, ifid in interfaces:
+                with gr.TabItem(label, id=ifid, elem_id="tab_" + ifid):
+                    interface.render()
+
+    launch_interface.launch(
         share=cmd_opts.share, server_name=cmd_opts.ip, server_port=cmd_opts.port
     )
 
