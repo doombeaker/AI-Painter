@@ -86,5 +86,4 @@ if __name__ == "__main__":
     if not shared.cmd_opts.ui_debug_mode:
         phandler = DiffusionPipelineHandler("a dog with glasses")
         imgs = phandler()
-        print(type(imgs), type(imgs[0]))
         imgs[0].save("demo.png")
