@@ -158,5 +158,4 @@ if __name__ == "__main__":
             "a dog with glasses", init_image=init_image
         )
         imgs = phandler()
-        print(type(imgs), type(imgs[0]))
         imgs[0].save("demo.png")
