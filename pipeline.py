@@ -53,7 +53,7 @@ class DiffusionImg2ImgPipelineHandler:
         eta=0.0,
         seed: int = -1,
         output_type="pil",
-        device_placement="cuda:1",
+        device_placement="cuda",
     ):
         self.prompt = prompt
         self.image = init_image.resize((width, height))
