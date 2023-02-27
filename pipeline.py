@@ -11,11 +11,12 @@ from PIL import Image
 from onediff import OneFlowStableDiffusionPipeline
 # from diffusers import DPMSolverMultistepScheduler
 
-from diffusers import (
-    # OneFlowStableDiffusionImg2ImgPipeline as DiffusionImg2ImgPipeline,
-    # OneFlowStableDiffusionPipeline as DiffusionPipeline,
-    DPMSolverMultistepScheduler,
-)
+from diffusers import DPMSolverMultistepScheduler
+# (
+#     # OneFlowStableDiffusionImg2ImgPipeline as DiffusionImg2ImgPipeline,
+#     # OneFlowStableDiffusionPipeline as DiffusionPipeline,
+#     DPMSolverMultistepScheduler,
+# )
 
 logging.basicConfig(
     level=shared.logging.INFO,
@@ -142,20 +143,21 @@ class DiffusionPipelineHandler:
         # if self.seed != -1:
         #     generator = flow.Generator(device=device_placement)
         #     generator.manual_seed(self.seed)
-        result = DiffusionPipelineHandler.pipe(
-            self.prompt,
-            height=self.hegiht,
-            width=self.width,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            negative_prompt=self.negative_prompt,
-            num_images_per_prompt=self.num_images_per_prompt,
-            eta=self.eta,
-            # generator=generator,
-            output_type=self.output_type,
-            compile_unet=shared.cmd_opts.graph_mode,
-        )
-        return result.images
+        with flow.autocast("cuda"):
+            result = DiffusionPipelineHandler.pipe(
+                self.prompt,
+                height=self.hegiht,
+                width=self.width,
+                num_inference_steps=self.num_inference_steps,
+                guidance_scale=self.guidance_scale,
+                negative_prompt=self.negative_prompt,
+                num_images_per_prompt=self.num_images_per_prompt,
+                eta=self.eta,
+                # generator=generator,
+                output_type=self.output_type,
+                compile_unet=shared.cmd_opts.graph_mode,
+            )
+            return result.images
 
 
 if __name__ == "__main__":

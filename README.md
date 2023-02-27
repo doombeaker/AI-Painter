@@ -29,7 +29,7 @@ sh setup_env.sh
 Launch the server:
 
 ```bash
-python3 launch.py --ip 0.0.0.0 --port 7860
+python3 launch.py --port 7860
 ```
 
 ### Launch Options
