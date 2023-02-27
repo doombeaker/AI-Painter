@@ -14,7 +14,8 @@ docker run -it --rm \
   -v ${PWD}:/workspace \
   -v ${PWD}/.cache:/root/.cache \
   -w /workspace \
-  oneflowinc/ai-painter:cu112 \
+  jackson430/ai-painter:cu117 \
+  sh setup_env.sh \
   python3 launch.py --ip 0.0.0.0 --port 7860
 ```
 
