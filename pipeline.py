@@ -2,7 +2,7 @@ import os
 
 import shared
 from shared import logging
-# import oneflow as torch
+
 import oneflow as flow
 flow.mock_torch.enable()
 
@@ -24,7 +24,6 @@ logging.basicConfig(
 
 device_placement = shared.cmd_opts.device
 repo_id = shared.cmd_opts.ckpt
-# model_id = "stabilityai/stable-diffusion-2"
 model_id = "CompVis/stable-diffusion-v1-4"
 
 
