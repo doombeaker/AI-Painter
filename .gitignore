@@ -8,5 +8,4 @@ ofwebapp/
 repositories/
 log/
 .cache/
-
-CompVis1/
+.vscode/
