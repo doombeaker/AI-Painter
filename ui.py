@@ -3,10 +3,21 @@ import os
 from pipeline import (
     DiffusionImg2ImgPipelineHandler,
     DiffusionPipelineHandler,
+    DiffusionControlNetCannyPipelineHandler,
     device_placement,
 )
 from shared import cmd_opts
 import shared
+from control_net.cn_canny import create_demo as create_demo_canny
+from control_net.cn_fake_scribble import create_demo as create_demo_fake_scribble
+from control_net.cn_hed import create_demo as create_demo_hed
+from control_net.cn_hough import create_demo as create_demo_hough
+from control_net.cn_normal import create_demo as create_demo_normal
+from control_net.cn_depth import create_demo as create_demo_depth
+from control_net.cn_pose import create_demo as create_demo_pose
+from control_net.cn_scribble import create_demo as create_demo_scribble
+from control_net.cn_seg import create_demo as create_demo_seg
+from model import Model, download_all_controlnet_weights
 from PIL import Image
 
 # Using constants for these since the variation selector isn't visible.
@@ -39,9 +50,7 @@ def create_output_panel(tabname):
             return (result_gallery, generation_info, html_info)
 
 
-def create_toprow(is_img2img):
-    id_part = "img2img" if is_img2img else "txt2img"
-
+def create_toprow(tabname):
     with gr.Row(elem_id="toprow"):
         with gr.Column(scale=6):
             with gr.Row():
@@ -49,7 +58,7 @@ def create_toprow(is_img2img):
                     with gr.Row():
                         prompt = gr.Textbox(
                             label="Prompt",
-                            elem_id=f"{id_part}_prompt",
+                            elem_id=f"{tabname}_prompt",
                             show_label=False,
                             lines=2,
                             placeholder="Prompt (press Ctrl+Enter or Alt+Enter to generate)",
@@ -60,7 +69,7 @@ def create_toprow(is_img2img):
                     with gr.Row():
                         negative_prompt = gr.Textbox(
                             label="Negative prompt",
-                            elem_id=f"{id_part}_neg_prompt",
+                            elem_id=f"{tabname}_neg_prompt",
                             show_label=False,
                             lines=2,
                             placeholder="Negative prompt (press Ctrl+Enter or Alt+Enter to generate)",
@@ -68,7 +77,7 @@ def create_toprow(is_img2img):
 
         button_interrogate = None
         button_deepbooru = None
-        if is_img2img:
+        if tabname == "img2img":
             with gr.Column(scale=1, elem_id="interrogate_col"):
                 button_interrogate = gr.Button(
                     "Interrogate\nCLIP", elem_id="interrogate"
@@ -79,7 +88,7 @@ def create_toprow(is_img2img):
 
         with gr.Column(scale=1):
             submit = gr.Button(
-                "Generate", elem_id=f"{id_part}_generate", variant="primary"
+                label="Generate", elem_id=f"{tabname}_generate", variant="primary"
             )
             submit.style(full_width=True)
 
@@ -127,7 +136,7 @@ def create_ui():
             submit,
             button_interrogate,
             button_deepbooru,
-        ) = create_toprow(is_img2img=False)
+        ) = create_toprow("txt2img")
 
         with gr.Row(elem_id="txt2img_progress_row"):
             with gr.Column(scale=1):
@@ -242,7 +251,7 @@ def create_ui():
             submit,
             button_interrogate,
             button_deepbooru,
-        ) = create_toprow(is_img2img=True)
+        ) = create_toprow("img2img")
 
         with gr.Row(elem_id="img2img_progress_row"):
             with gr.Column(scale=1):
@@ -388,10 +397,205 @@ def create_ui():
                 img2img_html_info,
             ],
         )
+    with gr.Blocks(analytics_enabled=False) as cn_canny_interface:
+        (
+            canny_prompt,
+            canny_negative_prompt,
+            submit,
+            button_interrogate,
+            button_deepbooru,
+        ) = create_toprow("cn_canny")
 
+        with gr.Row(elem_id="cn_canny_progress_row"):
+            with gr.Column(scale=1):
+                pass
+
+            with gr.Column(scale=1):
+                progressbar = gr.HTML(elem_id="cn_canny_progressbar")
+                img2img_preview = gr.Image(elem_id="cn_canny_preview", visible=False)
+                setup_progressbar(progressbar, img2img_preview, "cn_canny")
+
+        with gr.Row().style(equal_height=False):
+            with gr.Column(variant="panel"):
+
+                with gr.Tabs(elem_id="mode_cn_canny") as tabs_img2img_mode:
+                    with gr.TabItem("cn_canny", id="cn_canny"):
+                        init_img = gr.Image(
+                            label="Image for cn_canny",
+                            elem_id="cn_canny_image",
+                            show_label=False,
+                            source="upload",
+                            interactive=True,
+                            type="pil",
+                        ).style(height=480)
+
+                steps = gr.Slider(
+                    minimum=1, maximum=150, step=1, label="Sampling Steps", value=20
+                )
+                guidance_scale = gr.Slider(
+                    minimum=1.0,
+                    maximum=30.0,
+                    step=0.5,
+                    label="Guidance Scale",
+                    value=7.5,
+                )
+
+                eta = gr.Slider(
+                    minimum=0.0,
+                    maximum=5.0,
+                    step=0.1,
+                    label="eta",
+                    value=0.0,
+                )
+
+                with gr.Group():
+                    width = gr.Slider(
+                        minimum=64,
+                        maximum=2048,
+                        step=64,
+                        label="Width",
+                        value=512,
+                        elem_id="cn_canny_width",
+                    )
+                    height = gr.Slider(
+                        minimum=64,
+                        maximum=2048,
+                        step=64,
+                        label="Height",
+                        value=512,
+                        elem_id="cn_canny_height",
+                    )
+
+                with gr.Group():
+                    denoising_strength = gr.Slider(
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.01,
+                        label="Denoising strength",
+                        value=0.75,
+                    )
+
+                with gr.Row():
+                    batch_size = gr.Slider(
+                        minimum=1, maximum=8, step=1, label="Images per Prompt", value=1
+                    )
+                with gr.Row():
+                    with gr.Box():
+                        with gr.Row(elem_id="seed_row"):
+                            seed = gr.Number(label="Seed", value=-1, precision=0)
+                            seed.style(container=False)
+                            random_seed = gr.Button(
+                                random_symbol, elem_id="random_seed"
+                            )
+
+            (
+                canny_gallery,
+                canny_generation_info,
+                canny_html_info,
+            ) = create_output_panel("cn_canny")
+
+        def run_diffusers_controlnet_canny_pipeline(
+            prompt: str,
+            image: Image.Image,
+            strength: float = 0.8,
+            width: int = 512,
+            height: int = 512,
+            num_inference_steps: int = 25,
+            guidance_scale: float = 7.5,
+            negative_prompt: str = None,
+            num_images_per_prompt: int = 1,
+            eta=0.0,
+            seed: int = -1,
+        ):
+            if image is None:
+                imgs = None
+                prompt = "Please drop image"
+            else:
+                handler = DiffusionControlNetCannyPipelineHandler(
+                    prompt,
+                    image,
+                    strength,
+                    width,
+                    height,
+                    num_inference_steps,
+                    guidance_scale,
+                    negative_prompt,
+                    num_images_per_prompt,
+                    eta,
+                    seed,
+                    "pil",
+                    device_placement,
+                )
+                imgs = handler()
+            return imgs, "", prompt
+
+        submit.click(
+            fn=run_diffusers_controlnet_canny_pipeline,
+            inputs=[
+                canny_prompt,
+                init_img,
+                denoising_strength,
+                width,
+                height,
+                steps,
+                guidance_scale,
+                canny_negative_prompt,
+                batch_size,
+                eta,
+                seed,
+            ],
+            outputs=[
+                canny_gallery,
+                canny_generation_info,
+                canny_html_info,
+            ],
+        )
+    with gr.Blocks(analytics_enabled=False) as control_net:
+        model = Model(base_model_id="runwayml/stable-diffusion-v1-5", task_name='canny')
+        with gr.Tabs():
+
+            with gr.TabItem('Canny'):
+                create_demo_canny(model.process_canny,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Hough'):
+                create_demo_hough(model.process_hough,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('HED'):
+                create_demo_hed(model.process_hed,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Scribble'):
+                create_demo_scribble(model.process_scribble,
+                                    max_images=3,
+                                    default_num_images=1)
+            with gr.TabItem('Fake Scribble'):
+                create_demo_fake_scribble(model.process_fake_scribble,
+                                        max_images=3,
+                                        default_num_images=1)
+            with gr.TabItem('Pose'):
+                create_demo_pose(model.process_pose,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Segmentation'):
+                create_demo_seg(model.process_seg,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Depth'):
+                create_demo_depth(model.process_depth,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Normal map'):
+                create_demo_normal(model.process_normal,
+                                max_images=3,
+                                default_num_images=1)
+                
     interfaces = [
         (txt2img_interface, "txt2img", "txt2img"),
         (img2img_interface, "img2img", "img2img"),
+        (cn_canny_interface, "canny", "canny"),
+        (control_net, "controlnet", "controlnet"),
     ]
     with gr.Blocks(analytics_enabled=False) as launch_interface:
 

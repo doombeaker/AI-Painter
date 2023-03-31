@@ -1,6 +1,6 @@
 *.png
 __pycache__/
-ckpt/
+ckpts/
 webapp/
 *.ipynb
 *.log
