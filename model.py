@@ -14,7 +14,6 @@ from diffusers import (ControlNetModel, DiffusionPipeline)
 
 from annotator.canny import apply_canny
 from annotator.util import HWC3, resize_image
-from annotator.hed import nms
 
 CONTROLNET_MODEL_IDS = {
     'canny': 'lllyasviel/sd-controlnet-canny',
@@ -379,7 +378,9 @@ class Model:
 
         control_image = cv2.resize(control_image, (W, H),
                                    interpolation=cv2.INTER_LINEAR)
-        control_image = nms(control_image, 127, 3.0)
+        with flow.mock_torch.disable():
+            from annotator.hed import nms
+            control_image = nms(control_image, 127, 3.0)
         control_image = cv2.GaussianBlur(control_image, (0, 0), 3.0)
         control_image[control_image > 4] = 255
         control_image[control_image < 255] = 0
