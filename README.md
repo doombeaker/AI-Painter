@@ -1,25 +1,12 @@
 # AI Painter by OneFlow
 
-![](./screenshot.png)
+support img2img, text2img and control net
+
+![](./screenshot1.png)
 
 A browser interface for [OneFlow Diffusers](https://github.com/Oneflow-Inc/diffusers) inspired by [Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui).
 
 ## How to Run
-
-### With Docker
-
-```bash
-docker run -it --rm \
-  --gpus all --ipc=host -p 7860:7860 --ulimit memlock=-1 --ulimit stack=67108864 \
-  -v ${PWD}:/workspace \
-  -v ${PWD}/.cache:/root/.cache \
-  -w /workspace \
-  jackson430/ai-painter:cu117 \
-  sh setup_env.sh \
-  python3 launch.py --ip 0.0.0.0 --port 7860
-```
-
-### Without Docker
 
 Install depencies:
 
@@ -41,4 +28,3 @@ There are other options besides `ip` and `port` mentioned above.
 - `--graph-mode`: use OneFlow graph mode which will accelerate the inference (but limited by fixed tensor shape)
 - `--device`: Target a specific device, eg: `cuda:0` means the first GPU and `cuda:1` means the second GPU
 
-### Using Jupyter
