@@ -1,6 +1,5 @@
-*.png
 __pycache__/
-ckpt/
+annotator/
 webapp/
 *.ipynb
 *.log
@@ -8,4 +7,4 @@ ofwebapp/
 repositories/
 log/
 .cache/
-
+.vscode/

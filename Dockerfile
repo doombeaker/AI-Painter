@@ -1,7 +1,9 @@
-FROM oneflowinc/oneflow-sd:cu112
+FROM python:3.8.16-alpine3.16
 
-COPY requirements.txt /tmp/
+RUN mkdir /app
+ADD . /app
 
-RUN python3 -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
-    && python3 -m pip install -r /tmp/requirements.txt \
-    && rm -rf /tmp/requirements.txt
+WORKDIR /app
+
+
+RUN python3 -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple

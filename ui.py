@@ -7,6 +7,16 @@ from pipeline import (
 )
 from shared import cmd_opts
 import shared
+from control_net.cn_canny import create_demo as create_demo_canny
+from control_net.cn_fake_scribble import create_demo as create_demo_fake_scribble
+from control_net.cn_hed import create_demo as create_demo_hed
+from control_net.cn_hough import create_demo as create_demo_hough
+from control_net.cn_normal import create_demo as create_demo_normal
+from control_net.cn_depth import create_demo as create_demo_depth
+from control_net.cn_pose import create_demo as create_demo_pose
+from control_net.cn_scribble import create_demo as create_demo_scribble
+from control_net.cn_seg import create_demo as create_demo_seg
+from model import Model
 from PIL import Image
 
 # Using constants for these since the variation selector isn't visible.
@@ -39,9 +49,7 @@ def create_output_panel(tabname):
             return (result_gallery, generation_info, html_info)
 
 
-def create_toprow(is_img2img):
-    id_part = "img2img" if is_img2img else "txt2img"
-
+def create_toprow(tabname):
     with gr.Row(elem_id="toprow"):
         with gr.Column(scale=6):
             with gr.Row():
@@ -49,7 +57,7 @@ def create_toprow(is_img2img):
                     with gr.Row():
                         prompt = gr.Textbox(
                             label="Prompt",
-                            elem_id=f"{id_part}_prompt",
+                            elem_id=f"{tabname}_prompt",
                             show_label=False,
                             lines=2,
                             placeholder="Prompt (press Ctrl+Enter or Alt+Enter to generate)",
@@ -60,7 +68,7 @@ def create_toprow(is_img2img):
                     with gr.Row():
                         negative_prompt = gr.Textbox(
                             label="Negative prompt",
-                            elem_id=f"{id_part}_neg_prompt",
+                            elem_id=f"{tabname}_neg_prompt",
                             show_label=False,
                             lines=2,
                             placeholder="Negative prompt (press Ctrl+Enter or Alt+Enter to generate)",
@@ -68,7 +76,7 @@ def create_toprow(is_img2img):
 
         button_interrogate = None
         button_deepbooru = None
-        if is_img2img:
+        if tabname == "img2img":
             with gr.Column(scale=1, elem_id="interrogate_col"):
                 button_interrogate = gr.Button(
                     "Interrogate\nCLIP", elem_id="interrogate"
@@ -79,7 +87,7 @@ def create_toprow(is_img2img):
 
         with gr.Column(scale=1):
             submit = gr.Button(
-                "Generate", elem_id=f"{id_part}_generate", variant="primary"
+                label="Generate", elem_id=f"{tabname}_generate", variant="primary"
             )
             submit.style(full_width=True)
 
@@ -120,13 +128,14 @@ def mirror(x):
 def create_ui():
 
     with gr.Blocks(analytics_enabled=False) as txt2img_interface:
+
         (
             prompt,
             negative_prompt,
             submit,
             button_interrogate,
             button_deepbooru,
-        ) = create_toprow(is_img2img=False)
+        ) = create_toprow("txt2img")
 
         with gr.Row(elem_id="txt2img_progress_row"):
             with gr.Column(scale=1):
@@ -241,7 +250,7 @@ def create_ui():
             submit,
             button_interrogate,
             button_deepbooru,
-        ) = create_toprow(is_img2img=True)
+        ) = create_toprow("img2img")
 
         with gr.Row(elem_id="img2img_progress_row"):
             with gr.Column(scale=1):
@@ -388,9 +397,51 @@ def create_ui():
             ],
         )
 
+    with gr.Blocks(analytics_enabled=False) as control_net:
+        model = Model(base_model_id="runwayml/stable-diffusion-v1-5", task_name='canny')
+        with gr.Tabs():
+
+            with gr.TabItem('Canny'):
+                create_demo_canny(model.process_canny,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Hough'):
+                create_demo_hough(model.process_hough,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('HED'):
+                create_demo_hed(model.process_hed,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Scribble'):
+                create_demo_scribble(model.process_scribble,
+                                    max_images=3,
+                                    default_num_images=1)
+            with gr.TabItem('Fake Scribble'):
+                create_demo_fake_scribble(model.process_fake_scribble,
+                                        max_images=3,
+                                        default_num_images=1)
+            with gr.TabItem('Pose'):
+                create_demo_pose(model.process_pose,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Segmentation'):
+                create_demo_seg(model.process_seg,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Depth'):
+                create_demo_depth(model.process_depth,
+                                max_images=3,
+                                default_num_images=1)
+            with gr.TabItem('Normal map'):
+                create_demo_normal(model.process_normal,
+                                max_images=3,
+                                default_num_images=1)
+                
     interfaces = [
         (txt2img_interface, "txt2img", "txt2img"),
         (img2img_interface, "img2img", "img2img"),
+        (control_net, "controlnet", "controlnet"),
     ]
     with gr.Blocks(analytics_enabled=False) as launch_interface:
 

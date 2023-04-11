@@ -1,14 +1,20 @@
 import os
 
+import cv2
+import numpy as np
 import shared
 from shared import logging
-import oneflow as torch
+
+from onediff import OneFlowStableDiffusionImg2ImgPipeline
+from onediff import OneFlowStableDiffusionPipeline
+
+import oneflow as flow
+flow.mock_torch.enable()
+
 from PIL import Image
 
 from diffusers import (
-    OneFlowStableDiffusionImg2ImgPipeline as DiffusionImg2ImgPipeline,
-    OneFlowStableDiffusionPipeline as DiffusionPipeline,
-    OneFlowDPMSolverMultistepScheduler as DPMSolverMultistepScheduler,
+    DPMSolverMultistepScheduler,
 )
 
 logging.basicConfig(
@@ -19,25 +25,23 @@ logging.basicConfig(
 )
 
 device_placement = shared.cmd_opts.device
-repo_id = shared.cmd_opts.ckpt
-model_id = "stabilityai/stable-diffusion-2"
+model_id = "runwayml/stable-diffusion-v1-5"
 
 
 class DiffusionImg2ImgPipelineHandler:
     if not shared.cmd_opts.ui_debug_mode:
-        logging.info("DiffusionImg2ImgPipeline initialization")
+        logging.info("OneFlowStableDiffusionImg2ImgPipeline initialization")
 
-        pipe = DiffusionImg2ImgPipeline.from_pretrained(
+        pipe = OneFlowStableDiffusionImg2ImgPipeline.from_pretrained(
             model_id,
             revision="fp16",
-            torch_dtype=torch.float16,
+            torch_dtype=flow.float16,
         )
         pipe.scheduler = DPMSolverMultistepScheduler.from_config(
             model_id, subfolder="scheduler"
         )
-        # pipe = pipe.to(device_placement)
-        pipe = pipe.to("cuda:1")
-        logging.info("DiffusionImg2ImgPipeline initialization completed")
+        pipe = pipe.to(device_placement)
+        logging.info("OneFlowStableDiffusionImg2ImgPipeline initialization completed")
 
     def __init__(
         self,
@@ -70,9 +74,9 @@ class DiffusionImg2ImgPipelineHandler:
     def __call__(self):
         generator = None
         if self.seed != -1:
-            generator = torch.Generator(device=device_placement)
+            generator = flow.Generator(device=device_placement)
             generator.manual_seed(self.seed)
-        with torch.autocast("cuda"):
+        with flow.autocast("cuda"):
             result = DiffusionImg2ImgPipelineHandler.pipe(
                 prompt=self.prompt,
                 image=self.image,
@@ -85,24 +89,22 @@ class DiffusionImg2ImgPipelineHandler:
                 generator=generator,
                 output_type=self.output_type,
                 compile_unet=shared.cmd_opts.graph_mode,
-            )
-        return result.images
-
+            ).images
+        return result
 
 class DiffusionPipelineHandler:
     if not shared.cmd_opts.ui_debug_mode:
-        logging.info("DiffusionPipeline initialization")
-        if not os.path.exists(repo_id):
-            repo_id = model_id
-        pipe = DiffusionPipeline.from_pretrained(
-            repo_id, torch_dtype=torch.float16, revision="fp16"
+        logging.info("OneFlowStableDiffusionPipeline initialization")
+
+        pipe = OneFlowStableDiffusionPipeline.from_pretrained(
+            model_id, revision="fp16", torch_dtype=flow.float16
         )
 
         pipe.scheduler = DPMSolverMultistepScheduler.from_config(
-            repo_id, subfolder="scheduler"
+            model_id, subfolder="scheduler"
         )
         pipe = pipe.to(device_placement)
-        logging.info("DiffusionPipeline initialization completed")
+        logging.info("OneFlowStableDiffusionPipeline initialization completed")
 
     def __init__(
         self,
@@ -133,23 +135,23 @@ class DiffusionPipelineHandler:
     def __call__(self):
         generator = None
         if self.seed != -1:
-            generator = torch.Generator(device=device_placement)
+            generator = flow.Generator(device=device_placement)
             generator.manual_seed(self.seed)
-        result = DiffusionPipelineHandler.pipe(
-            self.prompt,
-            height=self.hegiht,
-            width=self.width,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            negative_prompt=self.negative_prompt,
-            num_images_per_prompt=self.num_images_per_prompt,
-            eta=self.eta,
-            generator=generator,
-            output_type=self.output_type,
-            compile_unet=shared.cmd_opts.graph_mode,
-        )
-        return result.images
-
+        with flow.autocast("cuda"):
+            result = DiffusionPipelineHandler.pipe(
+                prompt=self.prompt,
+                height=self.hegiht,
+                width=self.width,
+                num_inference_steps=self.num_inference_steps,
+                guidance_scale=self.guidance_scale,
+                negative_prompt=self.negative_prompt,
+                num_images_per_prompt=self.num_images_per_prompt,
+                eta=self.eta,
+                generator=generator,
+                output_type=self.output_type,
+                compile_unet=shared.cmd_opts.graph_mode,
+            ).images
+        return result
 
 if __name__ == "__main__":
     if not shared.cmd_opts.ui_debug_mode:
